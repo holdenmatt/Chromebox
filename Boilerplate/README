@@ -1,0 +1,9 @@
+# Dropbox Boilerplate
+
+Boilerplate for a Chrome Extension that uses the Dropbox API.
+
+Install coffeescript:
+$ npm install -g coffee-script
+
+Build/watch:
+$ coffee -o js/ -cw src/
