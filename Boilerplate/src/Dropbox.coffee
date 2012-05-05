@@ -105,9 +105,49 @@ class OAuthClient
 
 class Dropbox extends OAuthClient
 
-    getAccount: (success, error) =>
-        url = "https://api.dropbox.com/1/account/info"
-        @oauth.getJSON url, success, error
+    API_VERSION: "1"
+    API_HOST: "api.dropbox.com"
+    API_CONTENT_HOST: "api-content.dropbox.com"
+
+    # Set the root for this client ("dropbox" or "sandbox").
+    constructor: (@root = "sandbox") ->
+        super
+
+    # Wrapper to make a single API request and parse the JSON response.
+    # Args:
+    #   success - Success callback.
+    #   failure - Failure callback.
+    #   target - The target URL with leading slash (e.g. '/metadata').
+    #   params - Request parameters.
+    #   method - An HTTP method (e.g. "PUT").
+    #   contentHost - Boolean indicating whether this is a content server request.
+    request: (success, failure, target, params = {}, method = "GET", contentHost = false) ->
+        host = if contentHost then @API_CONTENT_HOST else @API_HOST
+        url = "https://#{host}/#{@API_VERSION}#{target}"
+        @oauth.request
+            method: method
+            url: url
+            data: params
+            success: (data) -> success JSON.parse data.text
+            failure: failure
+
+    account_info: (success, failure, params) =>
+        @request success, failure, "/account/info", params
+
+    metadata: (success, failure, path, params) =>
+        path = escapePath path
+        @request success, failure, "/metadata/#{@root}/#{path}", params
+
+    search: (success, failure, path, params) =>
+        path = escapePath path
+        @request success, failure, "/search/#{@root}/#{path}", params
+
+
+# Escape a path string as a URI component (but leave '/' alone).
+escapePath = (path = "") ->
+    path = encodeURIComponent(path)
+        .replace(/%2F/g, "/")
+        .replace(/^\/+|\/+$/g, "")  # Strip leading/trailing '/'
 
 
 window.Dropbox = Dropbox
