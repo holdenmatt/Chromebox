@@ -1,4 +1,4 @@
-oauth = new OAuthWrapper
-oauth.authorize () ->
-    oauth.getAccount (data) ->
+dropbox = new Dropbox
+dropbox.authorize () ->
+    dropbox.getAccount (data) ->
         console.log data

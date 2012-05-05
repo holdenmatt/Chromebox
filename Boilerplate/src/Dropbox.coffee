@@ -1,6 +1,8 @@
-###
-Authenticate with the Dropbox API using OAuth.
-###
+#
+# Dropbox.coffee
+#
+# A Dropbox API for Javascript.
+#
 
 CONSUMER_KEY = "5y95sf8dgsiov5q"
 CONSUMER_SECRET = "xq3uvt45e1imrzi"
@@ -37,7 +39,8 @@ Tokens =
         localStorage.removeItem(TOKEN_SECRET_KEY)
 
 
-class OAuthWrapper
+# Fetch and store an OAuth access token and secret.
+class OAuthClient
     constructor: () ->
         @oauth = new OAuth
             consumerKey: CONSUMER_KEY
@@ -75,7 +78,8 @@ class OAuthWrapper
             @oauth.fetchRequestToken success, error
 
     # Exchange our request token/secret for a persistent access token/secret.
-    fetchAccessToken: () =>
+    # Private: this is called by the oauth_callback page after authorization.
+    _fetchAccessToken: () =>
 
         closeSelectedTab = () ->
             chrome.tabs.getSelected null, (tab) ->
@@ -99,9 +103,11 @@ class OAuthWrapper
             @showError "Failed to retrieve a saved access token"
 
 
+class Dropbox extends OAuthClient
+
     getAccount: (success, error) =>
         url = "https://api.dropbox.com/1/account/info"
         @oauth.getJSON url, success, error
 
 
-window.OAuthWrapper = OAuthWrapper
+window.Dropbox = Dropbox
