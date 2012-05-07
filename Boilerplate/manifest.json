@@ -1,10 +1,11 @@
 {
   "name": "Dropbox Boilerplate",
   "version": "0.1",
+  "manifest_version": 2,
   "description": "Boilerplate for a Chrome Extension that uses the Dropbox API.",
   "browser_action": {
     "default_title": "Dropbox Boilerplate",
-    "default_icon": "img/icon19x19.png",
+    "default_icon":  "img/icon19x19.png",
     "default_popup": "popup.html"
   },
   "permissions": [

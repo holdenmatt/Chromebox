@@ -1,9 +1,11 @@
-#
-# Dropbox.coffee
-#
-# A Dropbox API client for Javascript.
-# Intended for use in e.g. Chrome extensions.
-#
+###
+Dropbox.js
+
+A Dropbox API client for Javascript.
+Intended for use in e.g. Chrome extensions.
+
+Copyright 2012 Matt Holden (holden.matt@gmail.com)
+###
 
 
 # NOTE: Your consumer key/secret should never appear in client code like this.
@@ -17,7 +19,7 @@ URL =
     requestToken: "https://api.dropbox.com/1/oauth/request_token"
     authorize:    "https://www.dropbox.com/1/oauth/authorize"
     accessToken:  "https://api.dropbox.com/1/oauth/access_token"
-    callback:      ROOT_PATH + "oauth_callback.html"
+    callback:      ROOT_PATH + "libs/oauth_callback.html"
 
 
 # Build a URL with given path and query parameters.
@@ -260,5 +262,11 @@ class Dropbox extends OAuthClient
             root: @root
             from_path: from
             to_path: to
+
+
+# If this is the oauth_callback page, fetch the access token.
+if /\/oauth_callback.html\?/.test window.location.href
+    new Dropbox()._fetchAccessToken();
+
 
 window.Dropbox = Dropbox
