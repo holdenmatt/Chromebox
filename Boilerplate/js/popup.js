@@ -14,11 +14,14 @@
       return console.log(data);
     }, failure);
     params = {
-      query: "jpg"
+      query: "me.jpg"
     };
-    return dropbox.search(function(data) {
+    dropbox.search(function(data) {
       return console.log(data);
     }, failure, null, params);
+    return dropbox.put_file(function(data) {
+      return console.log(data);
+    }, failure, "example.txt", null, "text content");
   });
 
 }).call(this);

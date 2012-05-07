@@ -9,7 +9,7 @@ dropbox.authorize () ->
     )
 
     params =
-        query: "jpg"
+        query: "me.jpg"
     dropbox.search(
         (data) -> console.log data
         failure
@@ -17,3 +17,10 @@ dropbox.authorize () ->
         params
     )
 
+    dropbox.put_file(
+        (data) -> console.log data
+        failure
+        "example.txt"
+        null
+        "text content"
+    )
