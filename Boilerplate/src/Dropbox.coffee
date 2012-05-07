@@ -2,8 +2,12 @@
 # Dropbox.coffee
 #
 # A Dropbox API client for Javascript.
+# Intended for use in e.g. Chrome extensions.
 #
 
+
+# NOTE: Your consumer key/secret should never appear in client code like this.
+# TODO: This needs to be fixed.
 CONSUMER_KEY = "5y95sf8dgsiov5q"
 CONSUMER_SECRET = "xq3uvt45e1imrzi"
 
@@ -13,13 +17,13 @@ URL =
     requestToken: "https://api.dropbox.com/1/oauth/request_token"
     authorize:    "https://www.dropbox.com/1/oauth/authorize"
     accessToken:  "https://api.dropbox.com/1/oauth/access_token"
-    callback: ROOT_PATH + "oauth_callback.html"
+    callback:      ROOT_PATH + "oauth_callback.html"
 
 
 # Build a URL with given path and query parameters.
 buildUrl = (path, params) ->
     encode = OAuth.urlencode
-    qs = [encode(key) + "=" + encode(value) for own key, value of params].join("&")
+    qs = [encode(key) + "=" + encode(value or "") for own key, value of params].join("&")
     if qs then path + "?" + qs else path
 
 # Escape a path string as a URI component (but leave '/' alone).
@@ -127,9 +131,8 @@ class Dropbox extends OAuthClient
     constructor: (@root = "sandbox") ->
         super
 
-    #
     # Wrapper to make a single API request and return a Promise for
-    # the parsed JSON response or failed response.
+    # the parsed JSON object or failed response.
     #
     # Args:
     #   method - An HTTP method (e.g. "PUT").
@@ -140,7 +143,7 @@ class Dropbox extends OAuthClient
     # Returns:
     #   A jQuery.Deferred promise.
     #
-    request: (method, target, data = {}, headers = {}) ->
+    request: (method, target, data = {}, headers = {}) =>
         deferred = new jQuery.Deferred
 
         # Use the correct host for this target.
@@ -150,69 +153,112 @@ class Dropbox extends OAuthClient
 
         target = escapePath target
         url = "https://#{host}/#{@API_VERSION}/#{target}"
+
         @oauth.request
             method: method
             url: url
             data: data
             headers: headers
-            success: (response) -> deferred.resolve JSON.parse response.text
-            failure: (response) -> deferred.reject response
+            success: (response) ->
+                headers = response?.responseHeaders
+                contentType = headers?["Content-Type"]
+                metadata = headers?["x-dropbox-metadata"]
+
+                # Parse response text if JSON.
+                value = response.text
+                if contentType in ["application/json", "text/javascript"]
+                    value = JSON.parse value
+
+                # Parse metadata as JSON if present (e.g. /files and /thumbnails).
+                metadata = response?.responseHeaders?["x-dropbox-metadata"]
+                metadata = if metadata? then JSON.parse metadata
+
+                if metadata?
+                    deferred.resolve value, metadata
+                else
+                    deferred.resolve value
+            failure: (response) ->
+                deferred.reject response
 
         return deferred.promise()
-        # TODO: x-dropbox-metadata
 
     # Return information about the user's account.
-    account_info: (params) =>
-        @request "GET", "/account/info", params
+    account_info: () =>
+        @request "GET", "/account/info"
 
-    # Download a file.
-    get_file: (path, params) =>
+    # Download a file, along with its metadata.
+    get_file: (path = "", params = {}) =>
         @request "GET", "/files/#{@root}/#{path}", params
 
     # Upload a file.
     # TODO: make this work with a screenshot; how to handle content-type?
-    put_file: (path, params, fileData) =>
+    put_file: (path = "", params = {}, fileData) =>
         target = buildUrl "/files_put/#{@root}/#{path}", params
         headers =
             "Content-Type": "text/plain"
 
         @request "PUT", target, fileData, headers
 
-    metadata: (path = "", params) =>
-        target = "/metadata/#{@root}/#{path}"
-        @request "GET", target, params
+    metadata: (path = "", params = {}) =>
+        @request "GET", "/metadata/#{@root}/#{path}", params
 
-    delta: (params) =>
-        target = "/delta"
-        @request "POST", target, params
+    delta: (params = {}) =>
+        @request "POST", "/delta", params
 
-    revisions: (path = "", params) =>
-        target = "/revisions/#{@root}/#{path}"
-        @request "GET", target, params
+    revisions: (path = "", params = {}) =>
+        @request "GET", "/revisions/#{@root}/#{path}", params
 
-    restore: (path = "", params) =>
-        target = "/restore/#{@root}/#{path}"
-        @request "POST", target, params
+    restore: (path = "", params = {}) =>
+        @request "POST", "/restore/#{@root}/#{path}", params
 
-    search: (path = "", params) =>
-        target = "/search/#{@root}/#{path}"
-        @request "GET", target, params
+    search: (path = "", params = {}) =>
+        @request "GET", "/search/#{@root}/#{path}", params
 
-    shares: (path = "", params) =>
-        target = "/shares/#{@root}/#{path}"
-        @request "POST", target, params
+    shares: (path = "") =>
+        @request "POST", "/shares/#{@root}/#{path}"
 
-    media: (path = "", params) =>
-        target = "/media/#{@root}/#{path}"
-        @request "POST", target, params
+    media: (path = "") =>
+        @request "POST", "/media/#{@root}/#{path}"
 
-    copy_ref: (path = "", params) =>
-        target = "/copy_ref/#{@root}/#{path}"
-        @request "GET", target, params
+    # Get a thumbnail for an image, along with metadata.
+    thumbnails: (path = "", params = {}) =>
+        @request "GET", "/thumbnails/#{@root}/#{path}", params
 
-    thumbnails: (path = "", params) =>
-        target = "/thumbnails/#{@root}/#{path}"
-        @request "GET", target, params
+    # Create and return a copy_ref to a file.
+    copy_ref: (path = "") =>
+        @request "GET", "/copy_ref/#{@root}/#{path}"
 
+    # Copy a file or folder to a new location.
+    file_copy: (from, to, params) =>
+        @request "POST", "/fileops/copy",
+            root: @root
+            from_path: from
+            to_path: to
+
+    # Copy a file or folder specified by a copy_ref.
+    file_copy_by_ref: (from, to, params) =>
+        @request "POST", "/fileops/copy",
+            root: @root
+            from_copy_ref: from
+            to_path: to
+
+    # Create a folder.
+    file_create_folder: (path) =>
+        @request "POST", "/fileops/create_folder",
+            root: @root
+            path: path
+
+    # Delete a file or folder.
+    file_delete: (path) =>
+        @request "POST", "/fileops/delete",
+            root: @root
+            path: path
+
+    # Move a file or folder to a new location.
+    file_move: (from, to, params = {}) =>
+        @request "POST", "/fileops/move",
+            root: @root
+            from_path: from
+            to_path: to
 
 window.Dropbox = Dropbox

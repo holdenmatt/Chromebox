@@ -1,20 +1,22 @@
 dropbox = new Dropbox
-
-success = (response) ->
-    console.log response
-
 failure = (response) ->
     console.log "Error", response
 
 dropbox.authorize () ->
     dropbox.metadata()
-    .then(success)
-    .fail(failure)
+    .then (response) ->
+        console.log "metadata", response
+    .fail failure
 
     dropbox.search("", query: "me.jpg")
-    .then(success)
-    .fail(failure)
+    .then (response) ->
+        console.log "search", response
+    .fail failure
 
     dropbox.put_file("example.txt", null, "text content")
-    .then(success)
-    .fail(failure)
+    .then (response) ->
+        console.log "put_file", arguments
+        dropbox.get_file("example.txt")
+        .then (response) ->
+            console.log "get_file", arguments
+    .fail failure

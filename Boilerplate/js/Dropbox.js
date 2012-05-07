@@ -28,7 +28,7 @@
         for (key in params) {
           if (!__hasProp.call(params, key)) continue;
           value = params[key];
-          _results.push(encode(key) + "=" + encode(value));
+          _results.push(encode(key) + "=" + encode(value || ""));
         }
         return _results;
       })()
@@ -160,9 +160,19 @@
 
     function Dropbox(root) {
       this.root = root != null ? root : "sandbox";
-      this.thumbnails = __bind(this.thumbnails, this);
+      this.file_move = __bind(this.file_move, this);
+
+      this.file_delete = __bind(this.file_delete, this);
+
+      this.file_create_folder = __bind(this.file_create_folder, this);
+
+      this.file_copy_by_ref = __bind(this.file_copy_by_ref, this);
+
+      this.file_copy = __bind(this.file_copy, this);
 
       this.copy_ref = __bind(this.copy_ref, this);
+
+      this.thumbnails = __bind(this.thumbnails, this);
 
       this.media = __bind(this.media, this);
 
@@ -183,6 +193,8 @@
       this.get_file = __bind(this.get_file, this);
 
       this.account_info = __bind(this.account_info, this);
+
+      this.request = __bind(this.request, this);
 
       Dropbox.__super__.constructor.apply(this, arguments);
     }
@@ -208,7 +220,21 @@
         data: data,
         headers: headers,
         success: function(response) {
-          return deferred.resolve(JSON.parse(response.text));
+          var contentType, metadata, value, _ref;
+          headers = response != null ? response.responseHeaders : void 0;
+          contentType = headers != null ? headers["Content-Type"] : void 0;
+          metadata = headers != null ? headers["x-dropbox-metadata"] : void 0;
+          value = response.text;
+          if (contentType === "application/json" || contentType === "text/javascript") {
+            value = JSON.parse(value);
+          }
+          metadata = response != null ? (_ref = response.responseHeaders) != null ? _ref["x-dropbox-metadata"] : void 0 : void 0;
+          metadata = metadata != null ? JSON.parse(metadata) : void 0;
+          if (metadata != null) {
+            return deferred.resolve(value, metadata);
+          } else {
+            return deferred.resolve(value);
+          }
         },
         failure: function(response) {
           return deferred.reject(response);
@@ -217,16 +243,28 @@
       return deferred.promise();
     };
 
-    Dropbox.prototype.account_info = function(params) {
-      return this.request("GET", "/account/info", params);
+    Dropbox.prototype.account_info = function() {
+      return this.request("GET", "/account/info");
     };
 
     Dropbox.prototype.get_file = function(path, params) {
+      if (path == null) {
+        path = "";
+      }
+      if (params == null) {
+        params = {};
+      }
       return this.request("GET", "/files/" + this.root + "/" + path, params);
     };
 
     Dropbox.prototype.put_file = function(path, params, fileData) {
       var headers, target;
+      if (path == null) {
+        path = "";
+      }
+      if (params == null) {
+        params = {};
+      }
       target = buildUrl("/files_put/" + this.root + "/" + path, params);
       headers = {
         "Content-Type": "text/plain"
@@ -235,81 +273,122 @@
     };
 
     Dropbox.prototype.metadata = function(path, params) {
-      var target;
       if (path == null) {
         path = "";
       }
-      target = "/metadata/" + this.root + "/" + path;
-      return this.request("GET", target, params);
+      if (params == null) {
+        params = {};
+      }
+      return this.request("GET", "/metadata/" + this.root + "/" + path, params);
     };
 
     Dropbox.prototype.delta = function(params) {
-      var target;
-      target = "/delta";
-      return this.request("POST", target, params);
+      if (params == null) {
+        params = {};
+      }
+      return this.request("POST", "/delta", params);
     };
 
     Dropbox.prototype.revisions = function(path, params) {
-      var target;
       if (path == null) {
         path = "";
       }
-      target = "/revisions/" + this.root + "/" + path;
-      return this.request("GET", target, params);
+      if (params == null) {
+        params = {};
+      }
+      return this.request("GET", "/revisions/" + this.root + "/" + path, params);
     };
 
     Dropbox.prototype.restore = function(path, params) {
-      var target;
       if (path == null) {
         path = "";
       }
-      target = "/restore/" + this.root + "/" + path;
-      return this.request("POST", target, params);
+      if (params == null) {
+        params = {};
+      }
+      return this.request("POST", "/restore/" + this.root + "/" + path, params);
     };
 
     Dropbox.prototype.search = function(path, params) {
-      var target;
       if (path == null) {
         path = "";
       }
-      target = "/search/" + this.root + "/" + path;
-      return this.request("GET", target, params);
+      if (params == null) {
+        params = {};
+      }
+      return this.request("GET", "/search/" + this.root + "/" + path, params);
     };
 
-    Dropbox.prototype.shares = function(path, params) {
-      var target;
+    Dropbox.prototype.shares = function(path) {
       if (path == null) {
         path = "";
       }
-      target = "/shares/" + this.root + "/" + path;
-      return this.request("POST", target, params);
+      return this.request("POST", "/shares/" + this.root + "/" + path);
     };
 
-    Dropbox.prototype.media = function(path, params) {
-      var target;
+    Dropbox.prototype.media = function(path) {
       if (path == null) {
         path = "";
       }
-      target = "/media/" + this.root + "/" + path;
-      return this.request("POST", target, params);
-    };
-
-    Dropbox.prototype.copy_ref = function(path, params) {
-      var target;
-      if (path == null) {
-        path = "";
-      }
-      target = "/copy_ref/" + this.root + "/" + path;
-      return this.request("GET", target, params);
+      return this.request("POST", "/media/" + this.root + "/" + path);
     };
 
     Dropbox.prototype.thumbnails = function(path, params) {
-      var target;
       if (path == null) {
         path = "";
       }
-      target = "/thumbnails/" + this.root + "/" + path;
-      return this.request("GET", target, params);
+      if (params == null) {
+        params = {};
+      }
+      return this.request("GET", "/thumbnails/" + this.root + "/" + path, params);
+    };
+
+    Dropbox.prototype.copy_ref = function(path) {
+      if (path == null) {
+        path = "";
+      }
+      return this.request("GET", "/copy_ref/" + this.root + "/" + path);
+    };
+
+    Dropbox.prototype.file_copy = function(from, to, params) {
+      return this.request("POST", "/fileops/copy", {
+        root: this.root,
+        from_path: from,
+        to_path: to
+      });
+    };
+
+    Dropbox.prototype.file_copy_by_ref = function(from, to, params) {
+      return this.request("POST", "/fileops/copy", {
+        root: this.root,
+        from_copy_ref: from,
+        to_path: to
+      });
+    };
+
+    Dropbox.prototype.file_create_folder = function(path) {
+      return this.request("POST", "/fileops/create_folder", {
+        root: this.root,
+        path: path
+      });
+    };
+
+    Dropbox.prototype.file_delete = function(path) {
+      return this.request("POST", "/fileops/delete", {
+        root: this.root,
+        path: path
+      });
+    };
+
+    Dropbox.prototype.file_move = function(from, to, params) {
+      if (params == null) {
+        params = {};
+      }
+      return this.request("POST", "/fileops/move", {
+        root: this.root,
+        from_path: from,
+        to_path: to
+      });
     };
 
     return Dropbox;
