@@ -16,19 +16,17 @@ URL =
     callback: ROOT_PATH + "oauth_callback.html"
 
 
-toQueryString = (obj) ->
-    encode = OAuth.urlencode
-    params = []
-    for own key, value of obj
-        param = encode(key) + "=" + encode(value)
-        params.push param
-
-    return params.join("&")
-
-
+# Build a URL with given path and query parameters.
 buildUrl = (path, params) ->
-    qs = toQueryString params
+    encode = OAuth.urlencode
+    qs = [encode(key) + "=" + encode(value) for own key, value of params].join("&")
     if qs then path + "?" + qs else path
+
+# Escape a path string as a URI component (but leave '/' alone).
+escapePath = (path = "") ->
+    path = encodeURIComponent(path)
+        .replace(/%2F/g, "/")
+        .replace(/^\/+|\/+$/g, "")  # Strip leading/trailing '/'
 
 
 # Save tokens persistently in localStorage.
@@ -129,16 +127,27 @@ class Dropbox extends OAuthClient
     constructor: (@root = "sandbox") ->
         super
 
-    # Wrapper to make a single API request and parse the JSON response.
+    #
+    # Wrapper to make a single API request and return a Promise for
+    # the parsed JSON response or failed response.
+    #
     # Args:
-    #   success - Success callback.
-    #   failure - Failure callback.
+    #   method - An HTTP method (e.g. "PUT").
     #   target - The target URL with leading slash (e.g. '/metadata').
     #   data - Request data or parameters.
-    #   method - An HTTP method (e.g. "PUT").
-    #   contentHost - Boolean indicating whether this is a content server request.
-    request: (success, failure, target, data = {}, method = "GET", contentHost = false, headers = {}) ->
-        host = if contentHost then @API_CONTENT_HOST else @API_HOST
+    #   headers - Additional HTTP headers.
+    #
+    # Returns:
+    #   A jQuery.Deferred promise.
+    #
+    request: (method, target, data = {}, headers = {}) ->
+        deferred = new jQuery.Deferred
+
+        # Use the correct host for this target.
+        host = @API_HOST
+        if /^\/files|\/thumbnails/.test target
+            host = @API_CONTENT_HOST
+
         target = escapePath target
         url = "https://#{host}/#{@API_VERSION}/#{target}"
         @oauth.request
@@ -146,68 +155,64 @@ class Dropbox extends OAuthClient
             url: url
             data: data
             headers: headers
-            success: (data) -> success JSON.parse data.text
-            failure: failure
+            success: (response) -> deferred.resolve JSON.parse response.text
+            failure: (response) -> deferred.reject response
 
+        return deferred.promise()
         # TODO: x-dropbox-metadata
 
     # Return information about the user's account.
-    account_info: (success, failure, params) =>
-        @request success, failure, "/account/info", params
+    account_info: (params) =>
+        @request "GET", "/account/info", params
 
-    get_file: (success, failure, path, params) =>
-        @request success, failure, "/files/#{@root}/#{path}", params, "GET", true
+    # Download a file.
+    get_file: (path, params) =>
+        @request "GET", "/files/#{@root}/#{path}", params
 
     # Upload a file.
     # TODO: make this work with a screenshot; how to handle content-type?
-    put_file: (success, failure, path, params, fileData) =>
+    put_file: (path, params, fileData) =>
         target = buildUrl "/files_put/#{@root}/#{path}", params
         headers =
             "Content-Type": "text/plain"
 
-        @request success, failure, target, fileData, "PUT", true, headers
+        @request "PUT", target, fileData, headers
 
-    metadata: (success, failure, path = "", params) =>
+    metadata: (path = "", params) =>
         target = "/metadata/#{@root}/#{path}"
-        @request success, failure, target, params
+        @request "GET", target, params
 
-    delta: (success, failure, params) =>
+    delta: (params) =>
         target = "/delta"
-        @request success, failure, target, params, "POST"
+        @request "POST", target, params
 
-    revisions: (success, failure, path = "", params) =>
+    revisions: (path = "", params) =>
         target = "/revisions/#{@root}/#{path}"
-        @request success, failure, target, params
+        @request "GET", target, params
 
-    restore: (success, failure, path = "", params) =>
+    restore: (path = "", params) =>
         target = "/restore/#{@root}/#{path}"
-        @request success, failure, target, params, "POST"
+        @request "POST", target, params
 
-    search: (success, failure, path = "", params) =>
+    search: (path = "", params) =>
         target = "/search/#{@root}/#{path}"
-        @request success, failure, target, params
+        @request "GET", target, params
 
-    shares: (success, failure, path = "", params) =>
+    shares: (path = "", params) =>
         target = "/shares/#{@root}/#{path}"
-        @request success, failure, target, params, "POST"
+        @request "POST", target, params
 
-    media: (success, failure, path = "", params) =>
+    media: (path = "", params) =>
         target = "/media/#{@root}/#{path}"
-        @request success, failure, target, params, "POST"
+        @request "POST", target, params
 
-    copy_ref: (success, failure, path = "", params) =>
+    copy_ref: (path = "", params) =>
         target = "/copy_ref/#{@root}/#{path}"
-        @request success, failure, target, params
+        @request "GET", target, params
 
-    thumbnails: (success, failure, path = "", params) =>
+    thumbnails: (path = "", params) =>
         target = "/thumbnails/#{@root}/#{path}"
-        @request success, failure, target, params, "GET", true
-
-# Escape a path string as a URI component (but leave '/' alone).
-escapePath = (path = "") ->
-    path = encodeURIComponent(path)
-        .replace(/%2F/g, "/")
-        .replace(/^\/+|\/+$/g, "")  # Strip leading/trailing '/'
+        @request "GET", target, params
 
 
 window.Dropbox = Dropbox
