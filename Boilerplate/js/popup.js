@@ -8,7 +8,7 @@
     return console.log("Error", response);
   };
 
-  dropbox.authorize(function() {
+  dropbox.authorize().fail(failure).then(function() {
     dropbox.metadata().then(function(response) {
       return console.log("metadata", response);
     }).fail(failure);

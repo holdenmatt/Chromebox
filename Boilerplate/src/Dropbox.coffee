@@ -67,58 +67,58 @@ class OAuthClient
             authorizationUrl: URL.authorize
             accessTokenUrl: URL.accessToken
 
-    showError: (message) ->
-        alert "Error: #{message}"
-
-    # If we have a saved access token, call a callback immediately.
-    # Otherwise start the OAuth dance by fetching a request token and
-    # redirecting to the authorize page.
-    authorize: (callback) =>
-
-        success = () =>
-            [token, token_secret] = @oauth.getAccessToken()
-            Tokens.set token, token_secret
-
-            callback = encodeURIComponent URL.callback
-            @oauth.setCallbackUrl URL.callback
-            url = URL.authorize + "?oauth_token=#{token}&oauth_callback=#{callback}"
-            window.open url
-
-        error = (response) =>
-            console.log response
-            @showError "Failed to fetch a request token"
+    # Return a Promise to authorize use of the Dropbox API.
+    # Use .then to add success callbacks, and .fail for errbacks.
+    # If we have a saved access token, then authorize succeeds.
+    # Otherwise we start the OAuth dance by fetching a request token and
+    # redirecting to the authorize page (and no callback will be called).
+    authorize: () =>
+        deferred = new jQuery.Deferred
 
         if Tokens.exist()
             [token, token_secret] = Tokens.get()
             @oauth.setAccessToken token, token_secret
-            callback()
+            deferred.resolve()
         else
+            success = () =>
+                # Save token/secret to localStorage.
+                [token, token_secret] = @oauth.getAccessToken()
+                Tokens.set token, token_secret
+
+                # Open the authorize page with our callback.
+                callback = encodeURIComponent URL.callback
+                @oauth.setCallbackUrl URL.callback
+                url = URL.authorize + "?oauth_token=#{token}&oauth_callback=#{callback}"
+                window.open url
+
+            error = (response) ->
+                throw new Error "Failed to fetch a request token: " + response
+
             @oauth.fetchRequestToken success, error
+
+        deferred.promise()
 
     # Exchange our request token/secret for a persistent access token/secret.
     # Private: this is called by the oauth_callback page after authorization.
     _fetchAccessToken: () =>
+        if not Tokens.exist()
+            throw new Error "Failed to retrieve a saved access token"
 
-        closeSelectedTab = () ->
-            chrome.tabs.getSelected null, (tab) ->
-                chrome.tabs.remove tab.id
+        closeTab = () ->
+            chrome.tabs.getSelected null, (tab) -> chrome.tabs.remove tab.id
 
         success = () =>
             [token, token_secret] = @oauth.getAccessToken()
             Tokens.set token, token_secret
-            closeSelectedTab()
+            closeTab()
 
         error = (response) =>
-            console.log response
-            @showError "Failed to fetch an access token"
-            closeSelectedTab()
+            throw new Error "Failed to fetch an access token: " + response
+            closeTab()
 
-        if Tokens.exist()
-            [token, token_secret] = Tokens.get()
-            @oauth.setAccessToken token, token_secret
-            @oauth.fetchAccessToken success, error
-        else
-            @showError "Failed to retrieve a saved access token"
+        [token, token_secret] = Tokens.get()
+        @oauth.setAccessToken token, token_secret
+        @oauth.fetchAccessToken success, error
 
 
 class Dropbox extends OAuthClient
@@ -180,7 +180,7 @@ class Dropbox extends OAuthClient
             failure: (response) ->
                 deferred.reject response
 
-        return deferred.promise()
+        deferred.promise()
 
     # Return information about the user's account.
     account_info: () =>

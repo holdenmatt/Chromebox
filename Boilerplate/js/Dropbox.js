@@ -85,39 +85,39 @@
       });
     }
 
-    OAuthClient.prototype.showError = function(message) {
-      return alert("Error: " + message);
-    };
-
-    OAuthClient.prototype.authorize = function(callback) {
-      var error, success, token, token_secret, _ref,
+    OAuthClient.prototype.authorize = function() {
+      var deferred, error, success, token, token_secret, _ref,
         _this = this;
-      success = function() {
-        var token, token_secret, url, _ref;
-        _ref = _this.oauth.getAccessToken(), token = _ref[0], token_secret = _ref[1];
-        Tokens.set(token, token_secret);
-        callback = encodeURIComponent(URL.callback);
-        _this.oauth.setCallbackUrl(URL.callback);
-        url = URL.authorize + ("?oauth_token=" + token + "&oauth_callback=" + callback);
-        return window.open(url);
-      };
-      error = function(response) {
-        console.log(response);
-        return _this.showError("Failed to fetch a request token");
-      };
+      deferred = new jQuery.Deferred;
       if (Tokens.exist()) {
         _ref = Tokens.get(), token = _ref[0], token_secret = _ref[1];
         this.oauth.setAccessToken(token, token_secret);
-        return callback();
+        deferred.resolve();
       } else {
-        return this.oauth.fetchRequestToken(success, error);
+        success = function() {
+          var callback, url, _ref1;
+          _ref1 = _this.oauth.getAccessToken(), token = _ref1[0], token_secret = _ref1[1];
+          Tokens.set(token, token_secret);
+          callback = encodeURIComponent(URL.callback);
+          _this.oauth.setCallbackUrl(URL.callback);
+          url = URL.authorize + ("?oauth_token=" + token + "&oauth_callback=" + callback);
+          return window.open(url);
+        };
+        error = function(response) {
+          throw new Error("Failed to fetch a request token: " + response);
+        };
+        this.oauth.fetchRequestToken(success, error);
       }
+      return deferred.promise();
     };
 
     OAuthClient.prototype._fetchAccessToken = function() {
-      var closeSelectedTab, error, success, token, token_secret, _ref,
+      var closeTab, error, success, token, token_secret, _ref,
         _this = this;
-      closeSelectedTab = function() {
+      if (!Tokens.exist()) {
+        throw new Error("Failed to retrieve a saved access token");
+      }
+      closeTab = function() {
         return chrome.tabs.getSelected(null, function(tab) {
           return chrome.tabs.remove(tab.id);
         });
@@ -126,20 +126,15 @@
         var token, token_secret, _ref;
         _ref = _this.oauth.getAccessToken(), token = _ref[0], token_secret = _ref[1];
         Tokens.set(token, token_secret);
-        return closeSelectedTab();
+        return closeTab();
       };
       error = function(response) {
-        console.log(response);
-        _this.showError("Failed to fetch an access token");
-        return closeSelectedTab();
+        throw new Error("Failed to fetch an access token: " + response);
+        return closeTab();
       };
-      if (Tokens.exist()) {
-        _ref = Tokens.get(), token = _ref[0], token_secret = _ref[1];
-        this.oauth.setAccessToken(token, token_secret);
-        return this.oauth.fetchAccessToken(success, error);
-      } else {
-        return this.showError("Failed to retrieve a saved access token");
-      }
+      _ref = Tokens.get(), token = _ref[0], token_secret = _ref[1];
+      this.oauth.setAccessToken(token, token_secret);
+      return this.oauth.fetchAccessToken(success, error);
     };
 
     return OAuthClient;

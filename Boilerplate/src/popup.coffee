@@ -2,7 +2,7 @@ dropbox = new Dropbox
 failure = (response) ->
     console.log "Error", response
 
-dropbox.authorize () ->
+dropbox.authorize().fail(failure).then () ->
     dropbox.metadata()
     .then (response) ->
         console.log "metadata", response
