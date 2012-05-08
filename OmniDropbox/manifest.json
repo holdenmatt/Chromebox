@@ -12,7 +12,9 @@
     "keyword" : "dropbox"
   },
   "icons": {
-    "16": "img/16.ico"
+    "16":  "img/16.png",
+    "48":  "img/48.png",
+    "128": "img/128.png"
   },
   "background": {
     "scripts": [

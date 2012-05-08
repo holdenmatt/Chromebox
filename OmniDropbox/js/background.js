@@ -38,11 +38,15 @@
       }
     });
     return chrome.omnibox.onInputEntered.addListener(function(text) {
-      return dropbox.shares(text).then(function(response) {
-        if (response.url) {
-          return window.open(response.url);
-        }
-      });
+      if (text) {
+        return dropbox.shares(text).then(function(response) {
+          if (response.url) {
+            return window.open(response.url);
+          }
+        });
+      } else {
+        return window.open("http://dropbox.com");
+      }
     });
   });
 

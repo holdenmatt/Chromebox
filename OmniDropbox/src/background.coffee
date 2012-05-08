@@ -4,9 +4,9 @@ dropbox.authorize().then () ->
     chrome.omnibox.setDefaultSuggestion
         description: "Search Dropbox"
 
-    # Search Dropbox whenever the omnibox text includes the "dropbox" keyword.
     chrome.omnibox.onInputChanged.addListener (text, suggest) ->
         if text
+            # Search Dropbox whenever we have non-empty text after our keyword.
             textPattern = new RegExp text, "g"
             dropbox.search "/",
                 query: text
@@ -30,9 +30,13 @@ dropbox.authorize().then () ->
 
                 suggest suggestions
 
-    # Open the /shares link when an item is selected.
     chrome.omnibox.onInputEntered.addListener (text) ->
-        dropbox.shares(text)
-        .then (response) ->
-            if response.url
-                window.open response.url
+        if text
+            # Open the preview page when a file or folder is selected.
+            dropbox.shares(text)
+            .then (response) ->
+                if response.url
+                    window.open response.url
+        else
+            # Open Dropbox home if the default suggestion (no text) is selected.
+            window.open "http://dropbox.com"
