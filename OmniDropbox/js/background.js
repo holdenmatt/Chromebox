@@ -2,7 +2,7 @@
 (function() {
   var dropbox;
 
-  dropbox = new Dropbox;
+  dropbox = new Dropbox("dropbox");
 
   dropbox.authorize().then(function() {
     chrome.omnibox.setDefaultSuggestion({
@@ -19,10 +19,7 @@
           textPattern = new RegExp(text, "g");
           for (_i = 0, _len = results.length; _i < _len; _i++) {
             result = results[_i];
-            console.log(result);
             path = result.path.replace(/^\//, "");
-            result.mime_type;
-            result.modified;
             description = path.replace(textPattern, function(match) {
               return "<match>" + match + "</match>";
             });

@@ -1,4 +1,4 @@
-dropbox = new Dropbox
+dropbox = new Dropbox "dropbox"
 dropbox.authorize().then () ->
 
     chrome.omnibox.setDefaultSuggestion
@@ -14,11 +14,8 @@ dropbox.authorize().then () ->
                 suggestions = []
                 textPattern = new RegExp text, "g"
                 for result in results
-                    console.log result
                     # Strip leading "/"
                     path = result.path.replace /^\//, ""
-                    result.mime_type
-                    result.modified
                     # Emphasize matching text
                     description = path.replace textPattern,
                         (match) -> "<match>#{match}</match>"

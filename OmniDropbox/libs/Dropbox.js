@@ -242,6 +242,7 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
           }
         },
         failure: function(response) {
+          console.log("Request failed: ", response);
           return deferred.reject(response);
         }
       });

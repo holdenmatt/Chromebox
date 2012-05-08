@@ -180,6 +180,7 @@ class Dropbox extends OAuthClient
                 else
                     deferred.resolve value
             failure: (response) ->
+                console.log "Request failed: ", response
                 deferred.reject response
 
         deferred.promise()
