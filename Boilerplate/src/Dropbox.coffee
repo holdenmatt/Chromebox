@@ -7,12 +7,6 @@ Intended for use in e.g. Chrome extensions.
 Copyright 2012 Matt Holden (holden.matt@gmail.com)
 ###
 
-
-# NOTE: Your consumer key/secret should never appear in client code like this.
-# TODO: This needs to be fixed.
-CONSUMER_KEY = "5y95sf8dgsiov5q"
-CONSUMER_SECRET = "xq3uvt45e1imrzi"
-
 ROOT_PATH = window.location.href.replace /[^\/]+\.html/, ""
 
 URL =
@@ -35,36 +29,38 @@ escapePath = (path = "") ->
         .replace(/^\/+|\/+$/g, "")  # Strip leading/trailing '/'
 
 
-# Save tokens persistently in localStorage.
-Tokens =
-    TOKEN: "oauth_token"
-    TOKEN_SECRET: "oauth_token_secret"
+# Save / retrieve / remove values in localStorage.
+LocalStorage =
+    set: (values) ->
+        for own key, value of values
+            localStorage.setItem key, value
 
-    get: () ->
-        return [
-            localStorage.getItem(Tokens.TOKEN)
-            localStorage.getItem(Tokens.TOKEN_SECRET)
-        ]
+    get: (keys...) ->
+        values = [localStorage.getItem key for key in keys]
+        if values.length == 1 then values[0] else values
 
-    set: (token, token_secret) ->
-        localStorage.setItem(Tokens.TOKEN, token)
-        localStorage.setItem(Tokens.TOKEN_SECRET, token_secret)
-
-    exist: () ->
-        tokens = Tokens.get()
-        return tokens[0]? and tokens[1]?
-
-    clear: () ->
-        localStorage.removeItem(Tokens.TOKEN)
-        localStorage.removeItem(Tokens.TOKEN_SECRET)
+    remove: (keys...) ->
+        for key in keys
+            localStorage.removeItem key
 
 
 # Fetch and store an OAuth access token and secret.
 class OAuthClient
-    constructor: () ->
+    constructor: (consumerKey, consumerSecret) ->
+        if consumerKey? and consumerSecret?
+            # Save values, so we can get them later in the OAuth flow.
+            LocalStorage.set
+                consumerKey: consumerKey
+                consumerSecret: consumerSecret
+        else
+            # Get values saved earlier in the flow.
+            [consumerKey, consumerSecret] = LocalStorage.get "consumerKey", "consumerSecret"
+            if not (consumerKey? and consumerSecret?)
+                throw new Error "Missing required consumerKey/consumerSecret"
+
         @oauth = new OAuth
-            consumerKey: CONSUMER_KEY
-            consumerSecret: CONSUMER_SECRET
+            consumerKey: consumerKey
+            consumerSecret: consumerSecret
             requestTokenUrl: URL.requestToken
             authorizationUrl: URL.authorize
             accessTokenUrl: URL.accessToken
@@ -77,15 +73,16 @@ class OAuthClient
     authorize: () =>
         deferred = new jQuery.Deferred
 
-        if Tokens.exist()
-            [token, token_secret] = Tokens.get()
+        [token, token_secret] = LocalStorage.get "oauth_token", "oauth_token_secret"
+        if token? and token_secret?
             @oauth.setAccessToken token, token_secret
             deferred.resolve()
         else
             success = () =>
-                # Save token/secret to localStorage.
                 [token, token_secret] = @oauth.getAccessToken()
-                Tokens.set token, token_secret
+                LocalStorage.set
+                    request_token: token
+                    request_token_secret: token_secret
 
                 # Open the authorize page with our callback.
                 callback = encodeURIComponent URL.callback
@@ -103,22 +100,24 @@ class OAuthClient
     # Exchange our request token/secret for a persistent access token/secret.
     # Private: this is called by the oauth_callback page after authorization.
     _fetchAccessToken: () =>
-        if not Tokens.exist()
-            throw new Error "Failed to retrieve a saved access token"
+        [token, token_secret] = LocalStorage.get "request_token", "request_token_secret"
+        if not (token? and token_secret?)
+            throw new Error "Failed to retrieve a saved request token"
 
         closeTab = () ->
             chrome.tabs.getSelected null, (tab) -> chrome.tabs.remove tab.id
 
         success = () =>
             [token, token_secret] = @oauth.getAccessToken()
-            Tokens.set token, token_secret
+            LocalStorage.set
+                oauth_token: token
+                oauth_token_secret: token_secret
             closeTab()
 
         error = (response) =>
             throw new Error "Failed to fetch an access token: " + response
             closeTab()
 
-        [token, token_secret] = Tokens.get()
         @oauth.setAccessToken token, token_secret
         @oauth.fetchAccessToken success, error
 
@@ -130,8 +129,8 @@ class Dropbox extends OAuthClient
     API_CONTENT_HOST: "api-content.dropbox.com"
 
     # Set the root for this client ("dropbox" or "sandbox").
-    constructor: (@root = "sandbox") ->
-        super
+    constructor: (consumerKey, consumerSecret, @root = "sandbox") ->
+        super consumerKey, consumerSecret
 
     # Wrapper to make a single API request and return a Promise for
     # the parsed JSON object or failed response.

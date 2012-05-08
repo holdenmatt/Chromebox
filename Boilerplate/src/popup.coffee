@@ -1,4 +1,9 @@
-dropbox = new Dropbox
+# WARNING: consumer key/secret shouldn't appear in insecure code like this.
+# TODO (Dropbox): Upgrade to OAuth 2.0.
+CONSUMER_KEY = "5y95sf8dgsiov5q"
+CONSUMER_SECRET = "xq3uvt45e1imrzi"
+
+dropbox = new Dropbox CONSUMER_KEY, CONSUMER_SECRET
 failure = (response) ->
     console.log "Error", response
 
