@@ -11,13 +11,11 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
 
 
 (function() {
-  var CONSUMER_KEY, CONSUMER_SECRET, Dropbox, OAuthClient, ROOT_PATH, Tokens, URL, buildUrl, escapePath,
+  var Dropbox, LocalStorage, OAuthClient, ROOT_PATH, URL, buildUrl, escapePath,
     __hasProp = {}.hasOwnProperty,
+    __slice = [].slice,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
     __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor; child.__super__ = parent.prototype; return child; };
-
-  CONSUMER_KEY = "7dgdzqp9j5cqay3";
-  CONSUMER_SECRET = "fbs5cpk15qpl12o";
 
   ROOT_PATH = window.location.href.replace(/[^\/]+\.html/, "");
 
@@ -57,24 +55,46 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
     return path = encodeURIComponent(path).replace(/%2F/g, "/").replace(/^\/+|\/+$/g, "");
   };
 
-  Tokens = {
-    TOKEN: "oauth_token",
-    TOKEN_SECRET: "oauth_token_secret",
+  LocalStorage = {
+    set: function(values) {
+      var key, value, _results;
+      _results = [];
+      for (key in values) {
+        if (!__hasProp.call(values, key)) continue;
+        value = values[key];
+        _results.push(localStorage.setItem(key, value));
+      }
+      return _results;
+    },
     get: function() {
-      return [localStorage.getItem(Tokens.TOKEN), localStorage.getItem(Tokens.TOKEN_SECRET)];
+      var key, keys, values;
+      keys = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      values = [
+        (function() {
+          var _i, _len, _results;
+          _results = [];
+          for (_i = 0, _len = keys.length; _i < _len; _i++) {
+            key = keys[_i];
+            _results.push(localStorage.getItem(key));
+          }
+          return _results;
+        })()
+      ];
+      if (values.length === 1) {
+        return values[0];
+      } else {
+        return values;
+      }
     },
-    set: function(token, token_secret) {
-      localStorage.setItem(Tokens.TOKEN, token);
-      return localStorage.setItem(Tokens.TOKEN_SECRET, token_secret);
-    },
-    exist: function() {
-      var tokens;
-      tokens = Tokens.get();
-      return (tokens[0] != null) && (tokens[1] != null);
-    },
-    clear: function() {
-      localStorage.removeItem(Tokens.TOKEN);
-      return localStorage.removeItem(Tokens.TOKEN_SECRET);
+    remove: function() {
+      var key, keys, _i, _len, _results;
+      keys = 1 <= arguments.length ? __slice.call(arguments, 0) : [];
+      _results = [];
+      for (_i = 0, _len = keys.length; _i < _len; _i++) {
+        key = keys[_i];
+        _results.push(localStorage.removeItem(key));
+      }
+      return _results;
     }
   };
 
@@ -82,13 +102,26 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
 
     OAuthClient.name = 'OAuthClient';
 
-    function OAuthClient() {
+    function OAuthClient(consumerKey, consumerSecret) {
       this._fetchAccessToken = __bind(this._fetchAccessToken, this);
 
       this.authorize = __bind(this.authorize, this);
+
+      var _ref;
+      if ((consumerKey != null) && (consumerSecret != null)) {
+        LocalStorage.set({
+          consumerKey: consumerKey,
+          consumerSecret: consumerSecret
+        });
+      } else {
+        _ref = LocalStorage.get("consumerKey", "consumerSecret"), consumerKey = _ref[0], consumerSecret = _ref[1];
+        if (!((consumerKey != null) && (consumerSecret != null))) {
+          throw new Error("Missing required consumerKey/consumerSecret");
+        }
+      }
       this.oauth = new OAuth({
-        consumerKey: CONSUMER_KEY,
-        consumerSecret: CONSUMER_SECRET,
+        consumerKey: consumerKey,
+        consumerSecret: consumerSecret,
         requestTokenUrl: URL.requestToken,
         authorizationUrl: URL.authorize,
         accessTokenUrl: URL.accessToken
@@ -99,15 +132,18 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
       var deferred, error, success, token, token_secret, _ref,
         _this = this;
       deferred = new jQuery.Deferred;
-      if (Tokens.exist()) {
-        _ref = Tokens.get(), token = _ref[0], token_secret = _ref[1];
+      _ref = LocalStorage.get("oauth_token", "oauth_token_secret"), token = _ref[0], token_secret = _ref[1];
+      if ((token != null) && (token_secret != null)) {
         this.oauth.setAccessToken(token, token_secret);
         deferred.resolve();
       } else {
         success = function() {
           var callback, url, _ref1;
           _ref1 = _this.oauth.getAccessToken(), token = _ref1[0], token_secret = _ref1[1];
-          Tokens.set(token, token_secret);
+          LocalStorage.set({
+            request_token: token,
+            request_token_secret: token_secret
+          });
           callback = encodeURIComponent(URL.callback);
           _this.oauth.setCallbackUrl(URL.callback);
           url = URL.authorize + ("?oauth_token=" + token + "&oauth_callback=" + callback);
@@ -124,8 +160,9 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
     OAuthClient.prototype._fetchAccessToken = function() {
       var closeTab, error, success, token, token_secret, _ref,
         _this = this;
-      if (!Tokens.exist()) {
-        throw new Error("Failed to retrieve a saved access token");
+      _ref = LocalStorage.get("request_token", "request_token_secret"), token = _ref[0], token_secret = _ref[1];
+      if (!((token != null) && (token_secret != null))) {
+        throw new Error("Failed to retrieve a saved request token");
       }
       closeTab = function() {
         return chrome.tabs.getSelected(null, function(tab) {
@@ -133,16 +170,18 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
         });
       };
       success = function() {
-        var token, token_secret, _ref;
-        _ref = _this.oauth.getAccessToken(), token = _ref[0], token_secret = _ref[1];
-        Tokens.set(token, token_secret);
+        var _ref1;
+        _ref1 = _this.oauth.getAccessToken(), token = _ref1[0], token_secret = _ref1[1];
+        LocalStorage.set({
+          oauth_token: token,
+          oauth_token_secret: token_secret
+        });
         return closeTab();
       };
       error = function(response) {
         throw new Error("Failed to fetch an access token: " + response);
         return closeTab();
       };
-      _ref = Tokens.get(), token = _ref[0], token_secret = _ref[1];
       this.oauth.setAccessToken(token, token_secret);
       return this.oauth.fetchAccessToken(success, error);
     };
@@ -163,7 +202,7 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
 
     Dropbox.prototype.API_CONTENT_HOST = "api-content.dropbox.com";
 
-    function Dropbox(root) {
+    function Dropbox(consumerKey, consumerSecret, root) {
       this.root = root != null ? root : "sandbox";
       this.file_move = __bind(this.file_move, this);
 
@@ -201,7 +240,7 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
 
       this.request = __bind(this.request, this);
 
-      Dropbox.__super__.constructor.apply(this, arguments);
+      Dropbox.__super__.constructor.call(this, consumerKey, consumerSecret);
     }
 
     Dropbox.prototype.request = function(method, target, data, headers) {

@@ -1,4 +1,9 @@
-dropbox = new Dropbox "dropbox"
+# WARNING: consumer key/secret shouldn't appear in insecure code like this.
+# TODO (Dropbox): Upgrade to OAuth 2.0.
+CONSUMER_KEY = "7dgdzqp9j5cqay3"
+CONSUMER_SECRET = "fbs5cpk15qpl12o"
+dropbox = new Dropbox CONSUMER_KEY, CONSUMER_SECRET, "dropbox"
+
 dropbox.authorize().then () ->
 
     chrome.omnibox.setDefaultSuggestion
