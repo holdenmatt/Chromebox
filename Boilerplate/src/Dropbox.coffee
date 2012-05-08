@@ -69,7 +69,7 @@ class OAuthClient
             authorizationUrl: URL.authorize
             accessTokenUrl: URL.accessToken
 
-    # Return a Promise to authorize use of the Dropbox API.
+    # Return a jQuery.Deferred promise to authorize use of the Dropbox API.
     # Use .then to add success callbacks, and .fail for errbacks.
     # If we have a saved access token, then authorize succeeds.
     # Otherwise we start the OAuth dance by fetching a request token and
