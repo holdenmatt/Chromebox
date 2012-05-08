@@ -9,21 +9,25 @@
       description: "Search Dropbox"
     });
     chrome.omnibox.onInputChanged.addListener(function(text, suggest) {
+      var textPattern;
       if (text) {
-        return dropbox.search("", {
+        textPattern = new RegExp(text, "g");
+        return dropbox.search("/", {
           query: text,
           file_limit: 5
         }).then(function(results) {
-          var description, path, result, suggestions, textPattern, _i, _len;
+          var description, path, result, suggestions, _i, _len;
           suggestions = [];
-          textPattern = new RegExp(text, "g");
           for (_i = 0, _len = results.length; _i < _len; _i++) {
             result = results[_i];
             path = result.path.replace(/^\//, "");
             description = path.replace(textPattern, function(match) {
               return "<match>" + match + "</match>";
             });
-            description += " - <dim>" + result.size + "</dim>";
+            description = "<url>" + description + "</url>";
+            if (!result.is_dir) {
+              description += " - <dim>" + result.size + "</dim>";
+            }
             suggestions.push({
               content: path,
               description: description
@@ -34,7 +38,11 @@
       }
     });
     return chrome.omnibox.onInputEntered.addListener(function(text) {
-      return alert('You just typed "' + text + '"');
+      return dropbox.shares(text).then(function(response) {
+        if (response.url) {
+          return window.open(response.url);
+        }
+      });
     });
   });
 
