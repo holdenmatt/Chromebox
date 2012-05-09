@@ -11,7 +11,7 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
 
 
 (function() {
-  var Dropbox, LocalStorage, OAuthClient, ROOT_PATH, URL, buildUrl, escapePath,
+  var Dropbox, LocalStorage, OAuthClient, ROOT_PATH, URL, toQueryString,
     __hasProp = {}.hasOwnProperty,
     __slice = [].slice,
     __bind = function(fn, me){ return function(){ return fn.apply(me, arguments); }; },
@@ -24,35 +24,6 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
     authorize: "https://www.dropbox.com/1/oauth/authorize",
     accessToken: "https://api.dropbox.com/1/oauth/access_token",
     callback: ROOT_PATH + "libs/oauth_callback.html"
-  };
-
-  buildUrl = function(path, params) {
-    var encode, key, qs, value;
-    encode = OAuth.urlencode;
-    qs = [
-      (function() {
-        var _results;
-        _results = [];
-        for (key in params) {
-          if (!__hasProp.call(params, key)) continue;
-          value = params[key];
-          _results.push(encode(key) + "=" + encode(value || ""));
-        }
-        return _results;
-      })()
-    ].join("&");
-    if (qs) {
-      return path + "?" + qs;
-    } else {
-      return path;
-    }
-  };
-
-  escapePath = function(path) {
-    if (path == null) {
-      path = "";
-    }
-    return path = encodeURIComponent(path).replace(/%2F/g, "/").replace(/^\/+|\/+$/g, "");
   };
 
   LocalStorage = {
@@ -243,20 +214,26 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
       Dropbox.__super__.constructor.call(this, consumerKey, consumerSecret);
     }
 
-    Dropbox.prototype.request = function(method, target, data, headers) {
-      var deferred, host, url;
-      if (data == null) {
-        data = {};
-      }
-      if (headers == null) {
-        headers = {};
+    Dropbox.prototype.request = function(method, target, params, body, headers) {
+      var data, deferred, host, qs, url;
+      if (params == null) {
+        params = {};
       }
       deferred = new jQuery.Deferred;
       host = this.API_HOST;
-      if (/^\/files|\/thumbnails/.test(target)) {
+      if (/^\/files|^\/thumbnails/.test(target)) {
         host = this.API_CONTENT_HOST;
       }
-      target = escapePath(target);
+      target = encodeURIComponent(target).replace(/%2F/g, "/").replace(/^\/+|\/+$/g, "");
+      if (body != null) {
+        data = body;
+        qs = toQueryString(params);
+        if (qs) {
+          target += "?" + qs;
+        }
+      } else {
+        data = params;
+      }
       url = "https://" + host + "/" + this.API_VERSION + "/" + target;
       this.oauth.request({
         method: method,
@@ -302,19 +279,22 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
       return this.request("GET", "/files/" + this.root + "/" + path, params);
     };
 
-    Dropbox.prototype.put_file = function(path, params, fileData) {
-      var headers, target;
+    Dropbox.prototype.put_file = function(path, params, content, headers) {
+      var target;
       if (path == null) {
         path = "";
       }
       if (params == null) {
         params = {};
       }
-      target = buildUrl("/files_put/" + this.root + "/" + path, params);
-      headers = {
-        "Content-Type": "text/plain"
-      };
-      return this.request("PUT", target, fileData, headers);
+      if (content == null) {
+        content = "";
+      }
+      if (headers == null) {
+        headers = {};
+      }
+      target = "/files_put/" + this.root + "/" + path;
+      return this.request("PUT", target, params, content, headers);
     };
 
     Dropbox.prototype.metadata = function(path, params) {
@@ -439,6 +419,20 @@ Copyright 2012 Matt Holden (holden.matt@gmail.com)
     return Dropbox;
 
   })(OAuthClient);
+
+  toQueryString = function(params) {
+    var encode, encoded, key, value;
+    encode = OAuth.urlEncode;
+    encoded = [];
+    for (key in params) {
+      if (!__hasProp.call(params, key)) continue;
+      value = params[key];
+      if ((key != null) && (value != null)) {
+        encoded.push(encode(key) + "=" + encode(value));
+      }
+    }
+    return encoded.join("&");
+  };
 
   if (/\/oauth_callback.html\?/.test(window.location.href)) {
     new Dropbox()._fetchAccessToken();

@@ -16,19 +16,6 @@ URL =
     callback:      ROOT_PATH + "libs/oauth_callback.html"
 
 
-# Build a URL with given path and query parameters.
-buildUrl = (path, params) ->
-    encode = OAuth.urlencode
-    qs = [encode(key) + "=" + encode(value or "") for own key, value of params].join("&")
-    if qs then path + "?" + qs else path
-
-# Escape a path string as a URI component (but leave '/' alone).
-escapePath = (path = "") ->
-    path = encodeURIComponent(path)
-        .replace(/%2F/g, "/")
-        .replace(/^\/+|\/+$/g, "")  # Strip leading/trailing '/'
-
-
 # Save / retrieve / remove values in localStorage.
 LocalStorage =
     set: (values) ->
@@ -138,23 +125,35 @@ class Dropbox extends OAuthClient
     # Args:
     #   method - An HTTP method (e.g. "PUT").
     #   target - The target URL with leading slash (e.g. '/metadata').
-    #   data - Request data or parameters.
+    #   params - Request parameters.
+    #   body   - Request body.
     #   headers - Additional HTTP headers.
     #
     # Returns:
     #   A jQuery.Deferred promise.
     #
-    request: (method, target, data = {}, headers = {}) =>
+    request: (method, target, params = {}, body, headers) =>
         deferred = new jQuery.Deferred
 
         # Use the correct host for this target.
         host = @API_HOST
-        if /^\/files|\/thumbnails/.test target
+        if /^\/files|^\/thumbnails/.test target
             host = @API_CONTENT_HOST
 
-        target = escapePath target
-        url = "https://#{host}/#{@API_VERSION}/#{target}"
+        # Escape the path as a URI component (but leave '/' unchanged).
+        target = encodeURIComponent(target)
+            .replace(/%2F/g, "/")
+            .replace(/^\/+|\/+$/g, "")  # Strip leading/trailing '/'
 
+        if body?
+            # Encode URL parameters if a separate request body is given.
+            data = body
+            qs = toQueryString params
+            if qs then target += "?" + qs
+        else
+            data = params
+
+        url = "https://#{host}/#{@API_VERSION}/#{target}"
         @oauth.request
             method: method
             url: url
@@ -193,13 +192,9 @@ class Dropbox extends OAuthClient
         @request "GET", "/files/#{@root}/#{path}", params
 
     # Upload a file.
-    # TODO: make this work with a screenshot; how to handle content-type?
-    put_file: (path = "", params = {}, fileData) =>
-        target = buildUrl "/files_put/#{@root}/#{path}", params
-        headers =
-            "Content-Type": "text/plain"
-
-        @request "PUT", target, fileData, headers
+    put_file: (path = "", params = {}, content = "", headers = {}) =>
+        target = "/files_put/#{@root}/#{path}"
+        @request "PUT", target, params, content, headers
 
     metadata: (path = "", params = {}) =>
         @request "GET", "/metadata/#{@root}/#{path}", params
@@ -262,6 +257,17 @@ class Dropbox extends OAuthClient
             root: @root
             from_path: from
             to_path: to
+
+
+toQueryString = (params) ->
+    encode = OAuth.urlEncode
+    encoded = []
+    for own key, value of params
+        if key? and value?
+            encoded.push encode(key) + "=" + encode(value)
+
+    encoded.join "&"
+
 
 
 # If this is the oauth_callback page, fetch the access token.
