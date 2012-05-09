@@ -1,0 +1,22 @@
+{
+  "name": "Clip to Dropbox",
+  "version": "0.1",
+  "description": "Clip web pages to your Dropbox.",
+  "browser_action": {
+    "default_title": "Clip to Dropbox",
+    "default_icon":  "img/16.png",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "tabs",
+    "pageCapture",
+    "https://www.dropbox.com/*",
+    "https://api.dropbox.com/*",
+    "https://api-content.dropbox.com/*"
+  ],
+  "icons": {
+    "16":  "img/16.png",
+    "48":  "img/48.png",
+    "128": "img/128.png"
+  }
+}
