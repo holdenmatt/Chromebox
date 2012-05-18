@@ -4,7 +4,7 @@
 
 - Authorize Dropbox access on extension install.
 
-To install, download and open [OmniDropbox.crx](https://github.com/holdenmatt/OmniDropbox/blob/master/OmniDropbox.crx).
+To install, download and open [OmniDropbox.crx](https://github.com/holdenmatt/OmniDropbox/raw/master/OmniDropbox.crx).
 
 ## Dropbox-sdk.js: a JavaScript client SDK for the Dropbox API.
 
@@ -14,8 +14,12 @@ To install, download and open [OmniDropbox.crx](https://github.com/holdenmatt/Om
 where this can be enabled.
 
 Install coffeescript:
+```
 $ npm install -g coffee-script
+```
 
 Build/watch:
+```
 $ cd Dropbox-sdk.js
 $ coffee -o libs/ -cw src/
+```
