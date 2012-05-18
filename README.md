@@ -14,6 +14,11 @@ Type "dropbox" in the Omnibox followed by search terms to search your Dropbox fi
 
 Type "dropbox" and hit Enter to open Dropbox in a new tab.
 
+### Uninstall
+
+Go to chrome://extensions and remove the OmniDropbox extension.
+
+
 ## Dropbox-sdk.js: a JavaScript client SDK for the Dropbox API.
 
 - Handles OAuth, token storage, response parsing, etc.
