@@ -1,12 +1,13 @@
 OAuth
-- OAuth 1.0 is not fun; pleeaase upgrade to OAuth 2.0.
+- OAuth 1.0 is not fun; upgrade to OAuth 2.0.
 - No way to access from JS without exposing consumer key/secret.
 
 'sandbox' is not well documented:
 - didn't understand how it worked until I did a successful files_put
-- was trying to create a folder with my app name, but search/metadata didn't find it.
+- tried creating a folder with my app name for testing initially, didn't
+realize there was an 'Apps' folder.
 
-Why a separate api-content domain?
+Why a separate api-content sub-domain?
 
 JSON responses should use Content-Type application/json instead of text/javascript:
 - http://www.ietf.org/rfc/rfc4627.txt
@@ -16,13 +17,12 @@ Docs:
 - not clear how to escape paths: e.g. encodeURIComponent, escape '/' or other chars?
 - only /files_put includes ?param=val in the docs, which confused me.
 - /shares vs /media descriptions aren't clear
-
-View a file through API: /shares?
-- but that creates a "link" in the UI...
+- strange that viewing a file through the API (with /shares ?) creates a "link" in the UI.
 
 fileops usage is inconsistent, not RESTful:
 - e.g. /filesops/delete?root=...&path=
-- instead, why not:
+- inconsistent with more RESTful /<root>/<path> syntax used by other endpoints
+- instead, perhaps:
 Create folder:
     POST /folders/<root>/<path>
 Delete:

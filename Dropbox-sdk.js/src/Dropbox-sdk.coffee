@@ -1,8 +1,10 @@
 ###
-Dropbox.js
+Dropbox-sdk.js
 
-A Dropbox API client for Javascript.
-Intended for use in e.g. Chrome extensions.
+A Dropbox SDK for Javascript.
+
+Intended for use in e.g. Chrome extensions, where cross-domain AJAX calls
+can be enabled.
 
 Copyright 2012 Matt Holden (holden.matt@gmail.com)
 ###
@@ -14,7 +16,6 @@ URL =
     authorize:    "https://www.dropbox.com/1/oauth/authorize"
     accessToken:  "https://api.dropbox.com/1/oauth/access_token"
     callback:      ROOT_PATH + "libs/oauth_callback.html"
-
 
 # Save / retrieve / remove values in localStorage.
 LocalStorage =
@@ -30,6 +31,18 @@ LocalStorage =
         for key in keys
             localStorage.removeItem key
 
+
+# Keep a list of all client instances.
+OAuthClients = []
+
+# Resolve any pending OAuthClient authorize calls.  This is needed to
+# resolve background page callbacks from the oauth_callback page.
+window.resolvePendingClients = () ->
+    [token, token_secret] = LocalStorage.get "oauth_token", "oauth_token_secret"
+    for client in OAuthClients
+        if client.deferred?.state() == "pending"
+            client.oauth.setAccessToken token, token_secret
+            client.deferred.resolve()
 
 # Fetch and store an OAuth access token and secret.
 class OAuthClient
@@ -52,18 +65,20 @@ class OAuthClient
             authorizationUrl: URL.authorize
             accessTokenUrl: URL.accessToken
 
+        OAuthClients.push this
+
     # Return a jQuery.Deferred promise to authorize use of the Dropbox API.
     # Use .then to add success callbacks, and .fail for errbacks.
     # If we have a saved access token, then authorize succeeds.
     # Otherwise we start the OAuth dance by fetching a request token and
-    # redirecting to the authorize page (and no callback will be called).
+    # redirecting to the authorize page.
     authorize: () =>
-        deferred = new jQuery.Deferred
+        @deferred = new jQuery.Deferred
 
         [token, token_secret] = LocalStorage.get "oauth_token", "oauth_token_secret"
         if token? and token_secret?
             @oauth.setAccessToken token, token_secret
-            deferred.resolve()
+            @deferred.resolve()
         else
             success = () =>
                 [token, token_secret] = @oauth.getAccessToken()
@@ -82,7 +97,7 @@ class OAuthClient
 
             @oauth.fetchRequestToken success, error
 
-        deferred.promise()
+        @deferred.promise()
 
     # Exchange our request token/secret for a persistent access token/secret.
     # Private: this is called by the oauth_callback page after authorization.
@@ -100,6 +115,10 @@ class OAuthClient
                 oauth_token: token
                 oauth_token_secret: token_secret
             closeTab()
+
+            # Resolve any background page OAuthClients.
+            chrome.extension.getBackgroundPage()?.resolvePendingClients()
+
 
         error = (response) =>
             throw new Error "Failed to fetch an access token: " + response
