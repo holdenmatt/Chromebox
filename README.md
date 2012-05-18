@@ -4,7 +4,15 @@
 
 - Authorize Dropbox access on extension install.
 
-To install, download and open [OmniDropbox.crx](https://github.com/holdenmatt/OmniDropbox/raw/master/OmniDropbox.crx).
+### Install
+
+Download and open [OmniDropbox.crx](https://github.com/holdenmatt/OmniDropbox/raw/master/OmniDropbox.crx).
+
+### Usage
+
+Type "dropbox" in the Omnibox followed by search terms to search your Dropbox files.
+
+Type "dropbox" and hit Enter to open Dropbox in a new tab.
 
 ## Dropbox-sdk.js: a JavaScript client SDK for the Dropbox API.
 
