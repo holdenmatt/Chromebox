@@ -1,11 +1,12 @@
-# OmniDropbox: Search your Dropbox files from the Chrome Omnibox.
+## OmniDropbox: Search your Dropbox files from the Chrome Omnibox.
 
 - Runs as a Chrome extension background page.
 
 - Authorize Dropbox access on extension install.
 
+To install, download and open [OmniDropbox.crx](https://github.com/holdenmatt/OmniDropbox/blob/master/OmniDropbox.crx).
 
-# Dropbox-sdk.js: a JavaScript client SDK for the Dropbox API.
+## Dropbox-sdk.js: a JavaScript client SDK for the Dropbox API.
 
 - Handles OAuth, token storage, response parsing, etc.
 
