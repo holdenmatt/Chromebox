@@ -1,22 +1,20 @@
-## OmniDropbox: Search your Dropbox files from the Chrome Omnibox.
-
-- Runs as a Chrome extension background page.
-
-- Authorize Dropbox access on extension install.
+## Chromebox: Search your Dropbox files from the Chrome search box (omnibox).
 
 ### Install
 
-Download and open [OmniDropbox.crx](https://github.com/holdenmatt/OmniDropbox/raw/master/OmniDropbox.crx).
+Download and open [Chromebox.crx](https://github.com/holdenmatt/Chromebox/raw/master/Chromebox.crx).
 
 ### Usage
 
-Type "dropbox" in the Omnibox followed by search terms to search your Dropbox files.
+Authorize Chromebox when you first install it.
 
-Type "dropbox" and hit Enter to open Dropbox in a new tab.
+To search your Dropbox files, just type "dbox" in the Chrome search box followed by search terms.
+
+Type "dbox" and hit Enter to open Dropbox in a new tab.
 
 ### Uninstall
 
-Go to chrome://extensions and remove the OmniDropbox extension.
+Go to chrome://extensions and remove the Chromebox extension.
 
 
 ## Dropbox-sdk.js: a JavaScript client SDK for the Dropbox API.

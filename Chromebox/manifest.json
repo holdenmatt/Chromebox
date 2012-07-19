@@ -1,7 +1,7 @@
 {
-  "name": "OmniDropbox",
+  "name": "Chromebox",
   "version": "0.1",
-  "description": "Search your Dropbox files using the Chrome omnibox.",
+  "description": "Search your Dropbox files using the Chrome search bar.",
   "permissions": [
     "tabs",
     "https://www.dropbox.com/*",
