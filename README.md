@@ -1,4 +1,4 @@
-## Chromebox: Search your Dropbox files from the Chrome search box (omnibox).
+## Chromebox: Search your Dropbox files from the Chrome search box.
 
 ### Install
 
