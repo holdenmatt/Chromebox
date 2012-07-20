@@ -15,22 +15,3 @@ Type "dbox" and hit Enter to open Dropbox in a new tab.
 ### Uninstall
 
 Go to chrome://extensions and remove the Chromebox extension.
-
-
-## Dropbox-sdk.js: a JavaScript client SDK for the Dropbox API.
-
-- Handles OAuth, token storage, response parsing, etc.
-
-- Requires cross-domain AJAX calls, so only intended in e.g. Chrome extensions
-where this can be enabled.
-
-Install coffeescript:
-```
-$ npm install -g coffee-script
-```
-
-Build/watch:
-```
-$ cd Dropbox-sdk.js
-$ coffee -o libs/ -cw src/
-```

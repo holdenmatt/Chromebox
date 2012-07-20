@@ -1,12 +1,7 @@
 ###
-Dropbox-sdk.js
+dropbox.coffee
 
-A Dropbox SDK for Javascript.
-
-Intended for use in e.g. Chrome extensions, where cross-domain AJAX calls
-can be enabled.
-
-Copyright 2012 Matt Holden (holden.matt@gmail.com)
+A Dropbox SDK for JavaScript (written in CoffeeScript).
 ###
 
 ROOT_PATH = window.location.href.replace /[^\/]+\.html/, ""

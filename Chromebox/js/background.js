@@ -1,7 +1,7 @@
 // WARNING: consumer key/secret shouldn't appear in insecure code like this.
 // TODO (Dropbox): Upgrade to OAuth 2.0.
-var CONSUMER_KEY = "7dgdzqp9j5cqay3",
-    CONSUMER_SECRET = "fbs5cpk15qpl12o",
+var CONSUMER_KEY = "ygaedmex8axw4m1",
+    CONSUMER_SECRET = "qfnm462s4lrh9tr",
     dropbox = new Dropbox(CONSUMER_KEY, CONSUMER_SECRET, "dropbox");
 
 dropbox.authorize().then(function () {
